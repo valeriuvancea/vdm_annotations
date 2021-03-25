@@ -1,0 +1,18 @@
+-Xlint:ignore
+-1.8
+-encoding
+UTF-8
+-showWeaveInfo
+-source
+1.8
+-target
+1.8
+-verbose
+-classpath
+C:\Users\valer\.m2\repository\junit\junit\4.11\junit-4.11.jar;C:\Users\valer\.m2\repository\org\aspectj\aspectjrt\1.8.4\aspectjrt-1.8.4.jar;C:\AU\Master Thesis\test\my-app\target\classes
+-d
+C:\AU\Master Thesis\test\my-app\target\classes
+C:\AU\Master Thesis\test\my-app\src\main\java\com\mycompany\app\App.java
+C:\AU\Master Thesis\test\my-app\src\main\java\com\mycompany\app\Secured.java
+C:\AU\Master Thesis\test\my-app\src\main\java\com\mycompany\app\SecuredMethod.java
+C:\AU\Master Thesis\test\my-app\src\main\java\com\mycompany\app\SecuredMethodAspect.java
