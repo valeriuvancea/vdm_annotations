@@ -1,0 +1,2 @@
+# How to install this into a maven repo
+`mvn install:install-file -DgroupId=com.mycompany.app -DartifactId=my-app -Dversion=1.0 -Dfile="C:\AU\Master Thesis\test\my-app\target\my-app-1.0-jar-with-dependencies.jar" -Dpackaging=jar -DgeneratePom=true -DlocalRepositoryPath=.  -DcreateChecksum=true`
