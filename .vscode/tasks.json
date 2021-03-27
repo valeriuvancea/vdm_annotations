@@ -4,25 +4,27 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "verify",
+            "label": "build",
             "type": "shell",
-            "command": "mvn -B verify",
+            "command": "mvn package",
             "group": "build"
         },
         {
-            "label": "test",
+            "label": "build and install",
             "type": "shell",
-            "command": "mvn -B test",
-            "group": "test"
-        },
-        {
-            "label": "build",
-            "type": "shell",
-            "command": "mvn -B compile",
+            "command": "mvn install:install-file -DgroupId=org.vdm -DartifactId=vdm-annotations -Dversion=1.0 -Dfile=\"C:/AU/Master Thesis/vdm_annotations/target/vdm-annotations-1.0-jar-with-dependencies.jar\" -Dpackaging=jar -DgeneratePom=true -DlocalRepositoryPath=\"C:/AU/Master Thesis/testRepo/\"  -DcreateChecksum=true",
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "dependsOn": "build"
+        },
+        {
+            "label": "debug-compile",
+            "type": "shell",
+            "command": "mvnDebug compile",
+            "group": "build",
+            "isBackground": true
         },
     ]
 }

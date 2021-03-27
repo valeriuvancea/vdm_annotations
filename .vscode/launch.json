@@ -6,16 +6,17 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Launch Current File",
-            "request": "launch",
-            "mainClass": "${file}"
+            "name": "Debug compilation",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 8000,
+            "preLaunchTask": "debug-compile"
         },
         {
             "type": "java",
             "name": "Launch App",
             "request": "launch",
-            "mainClass": "com.mycompany.app.App",
-            "projectName": "my-app",
+            "mainClass": "org.vdm.test.Main",
             "preLaunchTask": "build"
         }
     ]
