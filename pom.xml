@@ -61,7 +61,7 @@
         <configuration>
           <filesets>
             <fileset>
-              <directory>${sourcesPath}/generated/vdm/java</directory>
+              <directory>${sourcesPath}/generated/vdm</directory>
               <includes>
                 <include>**/*.java</include>
               </includes>
