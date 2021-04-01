@@ -3,8 +3,6 @@ package org.vdm.overture;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.TypeName;
@@ -122,9 +120,9 @@ public class VDMTypesHelper {
         } else if (javaVDMEquivalentRealTypes.contains(providedTypeName)) {
             return new RealValue(Double.parseDouble(stringValue));
         } else if (javaVDMEquivalentCharTypes.contains(providedTypeName)) {
-            return new CharacterValue((char) value);
+            return new CharacterValue(stringValue.charAt(0));
         } else if (javaVDMEquivalentBooleanTypes.contains(providedTypeName)) {
-            return new BooleanValue((boolean) value);
+            return new BooleanValue(Boolean.parseBoolean(stringValue));
         } else if (javaVDMEquivalentCharSequenceTypes.contains(providedTypeName)) {
             ValueList vdmStringValue = new ValueList();
 
@@ -201,10 +199,12 @@ public class VDMTypesHelper {
     // For vdm code generation
     public static String getVDMTypeAsStringFromJavaType(TypeName type) throws Exception {
         String typeString = type.toString();
-        Exception unsupportedTypeException = new Exception("Unsupported provided type: " + typeString));
+        Exception unsupportedTypeException = new Exception("Unsupported provided type: " + typeString);
 
         String typeToReturn = null;
-        if (javaVDMEquivalentIntegerTypes.contains(type)) {
+        if (type.toString().equals("void")) {
+            return "";
+        } else if (javaVDMEquivalentIntegerTypes.contains(type)) {
             typeToReturn = "int";
         } else if (javaVDMEquivalentRealTypes.contains(type)) {
             typeToReturn = "real";
@@ -212,24 +212,27 @@ public class VDMTypesHelper {
             typeToReturn = "char";
         } else if (javaVDMEquivalentBooleanTypes.contains(type)) {
             typeToReturn = "bool";
-        } else if (javaVDMEquivalentCharSequenceTypes.contains(type)){
+        } else if (javaVDMEquivalentCharSequenceTypes.contains(type)) {
             typeToReturn = "seq of char";
-        } else if(type instanceof ArrayTypeName) {
+        } else if (type instanceof ArrayTypeName) {
             String arrayType = typeString.substring(0, typeString.indexOf("["));
             typeToReturn = "seq of " + getVDMTypeAsStringFromJavaType(TypeName.get(getClassFromString(arrayType)));
         } else {
             Class<?> providedClassType = Class.forName(typeString.substring(0, typeString.indexOf("<")));
-            String genericTypeString = typeString.substring(typeString.indexOf("<") + 1, typeString.indexOf("<"));
+            String genericTypeString = typeString.substring(typeString.indexOf("<") + 1, typeString.indexOf(">"));
 
             if (Set.class.isAssignableFrom(providedClassType)) {
-                typeToReturn = "set of " + getVDMTypeAsStringFromJavaType(TypeName.get(getClassFromString(genericTypeString)));
+                typeToReturn = "set of "
+                        + getVDMTypeAsStringFromJavaType(TypeName.get(getClassFromString(genericTypeString)));
             } else if (Collection.class.isAssignableFrom(providedClassType)) {
-                typeToReturn = "seq of " + getVDMTypeAsStringFromJavaType(TypeName.get(getClassFromString(genericTypeString)));
+                typeToReturn = "seq of "
+                        + getVDMTypeAsStringFromJavaType(TypeName.get(getClassFromString(genericTypeString)));
             } else if (Map.class.isAssignableFrom(providedClassType)) {
                 String genericKeyType = genericTypeString.substring(0, genericTypeString.indexOf(","));
                 String genericValueType = genericTypeString.substring(genericTypeString.indexOf(",") + 1);
                 String vdmMapKeyType = getVDMTypeAsStringFromJavaType(TypeName.get(getClassFromString(genericKeyType)));
-                String vdmMapValueType = getVDMTypeAsStringFromJavaType(TypeName.get(getClassFromString(genericValueType)));
+                String vdmMapValueType = getVDMTypeAsStringFromJavaType(
+                        TypeName.get(getClassFromString(genericValueType)));
 
                 typeToReturn = "map " + vdmMapKeyType + " to " + vdmMapValueType;
             } else {
@@ -295,13 +298,13 @@ public class VDMTypesHelper {
     }
 
     private static <T> String getVDMStringFromJavaCollectionValue(T value, Exception exception) throws Exception {
-        Set<?> collection = (Set<?>) value;
+        Collection<?> collection = (Collection<?>) value;
         boolean wasFirstEntryVerified = false;
         String result = value instanceof Set ? "{" : "[";
         Iterator<?> iterator = collection.iterator();
         while (iterator.hasNext()) {
             Object item = iterator.next();
-            if (!wasFirstEntryVerified) {
+            if (wasFirstEntryVerified) {
                 result += ", ";
             } else {
                 if (!supportedJavaClasses.contains(item.getClass())) {
@@ -309,7 +312,7 @@ public class VDMTypesHelper {
                 }
                 wasFirstEntryVerified = true;
             }
-            result += getVDMStringFromValue(iterator);
+            result += getVDMStringFromValue(item);
         }
         result += value instanceof Set ? "}" : "]";
         return result;
@@ -355,7 +358,7 @@ public class VDMTypesHelper {
 
             return (ReturnType) map;
         } else if (value instanceof SeqValue) {
-            Collection<?> collection = (Collection<?>) classWithoutGeneric.getConstructor().newInstance();
+            Collection<?> collection = new ArrayList();
             Iterator<? extends Value> iterator = (((SeqValue) value).values).iterator();
 
             while (iterator.hasNext()) {
@@ -364,7 +367,7 @@ public class VDMTypesHelper {
 
             return (ReturnType) collection;
         } else if (value instanceof Set) {
-            Set<?> set = (Set<?>) classWithoutGeneric.getConstructor().newInstance();
+            Set<?> set = (Set<?>) new ArrayList();
             Iterator<? extends Value> iterator = (((SetValue) value).values).iterator();
 
             while (iterator.hasNext()) {

@@ -8,5 +8,19 @@ public class RemoteController implements RemoteControl {
 
     public void run(RemoteInterpreter interpreter) throws Exception {
         RemoteController.interpreter = interpreter;
+        String mainClass = System.getProperty("mainClass");
+        if (mainClass == null) {
+            mainClass = System.getenv("mainClass");
+        }
+        if (mainClass != null) {
+            try {
+                Class.forName(mainClass).getMethod("main", String[].class).invoke(null, new Object[] { new String[0] });
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        } else {
+            System.out.println("Error: Environment variable 'mainClass' not provided!");
+        }
+        interpreter.finish();
     }
 }

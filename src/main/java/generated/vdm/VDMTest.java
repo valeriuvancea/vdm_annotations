@@ -1,17 +1,18 @@
 package generated.vdm;
 
 import java.lang.Exception;
-import org.overture.interpreter.values.BooleanValue;
-import org.overture.interpreter.values.IntegerValue;
-import org.overture.interpreter.values.SeqValue;
 import org.overture.interpreter.values.Value;
 import org.overture.interpreter.values.VoidValue;
+import org.vdm.annotations.VDMJavaInterface;
 import org.vdm.overture.VDMTypesHelper;
-import org.vdm.test.Test;
 
-public class VDMTest extends Test {
-  public Value a(BooleanValue c, IntegerValue e, SeqValue test) throws Exception {
-    super.a(VDMTypesHelper.getJavaValueFromVDMValue(c, "boolean"), VDMTypesHelper.getJavaValueFromVDMValue(e, "int"), VDMTypesHelper.getJavaValueFromVDMValue(test, "java.util.List<java.lang.Integer>"));
+public class VDMTest extends org.vdm.test.Test implements VDMJavaInterface {
+  public Value bestFunctionGenerated(Value c, Value e, Value test) throws Exception {
+    super.bestFunction(VDMTypesHelper.getJavaValueFromVDMValue(c, "boolean"), VDMTypesHelper.getJavaValueFromVDMValue(e, "int"), VDMTypesHelper.getJavaValueFromVDMValue(test, "java.util.List<java.lang.Integer>"));
     return new VoidValue();
+  }
+
+  public Value bestFunction2323Generated(Value c, Value e, Value test) throws Exception {
+    return VDMTypesHelper.getVDMValueFromJavaValue(super.bestFunction2323(VDMTypesHelper.getJavaValueFromVDMValue(c, "boolean"), VDMTypesHelper.getJavaValueFromVDMValue(e, "int"), VDMTypesHelper.getJavaValueFromVDMValue(test, "java.util.List<java.lang.Integer>")));
   }
 }
