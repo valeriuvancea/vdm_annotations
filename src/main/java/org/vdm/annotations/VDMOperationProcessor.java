@@ -33,6 +33,7 @@ public class VDMOperationProcessor extends AbstractProcessor {
     private Map<String, List<Method>> classes = new HashMap<>();
     private RoundEnvironment roundEnv = null;
     public static ProcessingEnvironment processingEnvironment = null;
+    private static Element errorsAndWarningsTarget = null;
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -66,15 +67,19 @@ public class VDMOperationProcessor extends AbstractProcessor {
 
                 VDMOperation methodAnnotation = method.getAnnotation(VDMOperation.class);
                 classes.get(methodClass).add(new Method(methodName, parameters, returnType, methodClass,
-                        methodAnnotation.preCondition(), methodAnnotation.postCondition()));
+                        methodAnnotation.preCondition(), methodAnnotation.postCondition(), (Element) methodObject));
             });
         }
     }
 
     private void generateClasses() {
         for (String classToAdd : classes.keySet()) {
-            new JavaClassGenerator(classToAdd, classes.get(classToAdd)).generate();
-            new VDMClassGenerator(classToAdd, classes.get(classToAdd)).generate();
+            List<Method> methods = classes.get(classToAdd);
+            if (methods.size() > 0) {
+                errorsAndWarningsTarget = methods.get(0).getErrorsAndWarningsTarget();
+            }
+            new JavaClassGenerator(classToAdd, methods).generate();
+            new VDMClassGenerator(classToAdd, methods).generate();
         }
     }
 
@@ -83,10 +88,18 @@ public class VDMOperationProcessor extends AbstractProcessor {
     }
 
     public static void writeError(String error) {
-        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.ERROR, error);
+        writeError(error, errorsAndWarningsTarget);
+    }
+
+    public static void writeError(String error, Element target) {
+        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.ERROR, error, target);
     }
 
     public static void writeWarning(String warning) {
-        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, warning);
+        writeWarning(warning, errorsAndWarningsTarget);
+    }
+
+    public static void writeWarning(String warning, Element target) {
+        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, warning, target);
     }
 }

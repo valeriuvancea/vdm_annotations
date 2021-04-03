@@ -1,6 +1,9 @@
 package org.vdm.annotations;
 
 import java.util.Map;
+
+import javax.lang.model.element.Element;
+
 import com.squareup.javapoet.TypeName;
 
 public class Method {
@@ -10,15 +13,17 @@ public class Method {
     private String className;
     private String preCondition;
     private String postCondition;
+    private Element errorsAndWarningsTarget;
 
     public Method(String name, Map<String, TypeName> parameters, TypeName returnType, String className,
-            String preCondition, String postCondition) {
+            String preCondition, String postCondition, Element errorsAndWarningsTarget) {
         this.name = name;
         this.parameters = parameters;
         this.returnType = returnType;
         this.className = className;
         this.preCondition = preCondition;
         this.postCondition = postCondition;
+        this.errorsAndWarningsTarget = errorsAndWarningsTarget;
     }
 
     public String getName() {
@@ -43,5 +48,9 @@ public class Method {
 
     public String getPostCondition() {
         return postCondition;
+    }
+
+    public Element getErrorsAndWarningsTarget() {
+        return errorsAndWarningsTarget;
     }
 }
