@@ -1,2 +1,3 @@
 target
-generated
+generatedVDMModel
+src/main/java/generated/vdm/

@@ -79,7 +79,7 @@ public class VDMOperationProcessor extends AbstractProcessor {
     }
 
     public static void writeNote(String note) {
-        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.NOTE, note);
+        System.out.println(note);
     }
 
     public static void writeError(String error) {

@@ -47,11 +47,13 @@ public class JavaClassGenerator extends BaseGenerator {
             }
             path += packageName.replace(".", "/") + "/";
 
-            String javaFileContent = JavaFile.builder(packageName, classSpec).build().toString()
-                    .replace("class " + classNameToAdd, "class " + classNameToAdd + " extends " + className);
+            File directory = new File(path);
+            directory.mkdirs();
 
             String filePath = path + classNameToAdd + ".java";
             File javaFile = new File(filePath);
+            String javaFileContent = JavaFile.builder(packageName, classSpec).build().toString()
+                    .replace("class " + classNameToAdd, "class " + classNameToAdd + " extends " + className);
 
             if (!javaFile.exists()) {
                 javaFile.createNewFile();

@@ -7,6 +7,7 @@ public class RemoteController implements RemoteControl {
     public static RemoteInterpreter interpreter = null;
 
     public void run(RemoteInterpreter interpreter) throws Exception {
+        System.out.println("VDM remote interpreter initialized!");
         RemoteController.interpreter = interpreter;
         String mainClass = System.getProperty("mainClass");
         if (mainClass == null) {

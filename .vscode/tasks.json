@@ -22,7 +22,7 @@
         {
             "label": "debug-compile",
             "type": "shell",
-            "command": "mvnDebug compile -e",
+            "command": "mvnDebug compile",
             "group": "build",
             "isBackground": true
         },
