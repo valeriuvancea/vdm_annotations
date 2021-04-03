@@ -12,6 +12,8 @@ import org.vdm.overture.VDMTypesHelper;
 @Aspect
 public class VDMOperationAspect {
     private Map<Object, String> vdmObjects = new HashMap<>();
+    private static int callStackLevel = 0;
+    private static String lastCalledMethodName = "";
 
     @Pointcut("@annotation(vdmMethod)")
     public void callAt(VDMOperation vdmMethod) {
@@ -19,11 +21,24 @@ public class VDMOperationAspect {
 
     @Around("callAt(vdmMethod)")
     public Object around(ProceedingJoinPoint proceedingJoinPoint, VDMOperation vdmMethod) throws Throwable {
+        String fullMethodName = proceedingJoinPoint.toShortString();
+        Object result = null;
+        fullMethodName = fullMethodName.substring(fullMethodName.indexOf("(") + 1, fullMethodName.length() - 1);
+
         if (RemoteController.interpreter == null || proceedingJoinPoint.getTarget() instanceof VDMJavaInterface) {
-            return proceedingJoinPoint.proceed();
+            if (proceedingJoinPoint.getTarget() instanceof VDMJavaInterface && RemoteController.interpreter != null
+                    && callStackLevel > 0 && callStackLevel % 2 == 1) {
+                System.out.println("NOTE: Annotated method " + fullMethodName
+                        + " called inside from another annotated method " + lastCalledMethodName
+                        + ". The method will be executed directly in Java without verifying properties defined in VDM.");
+            }
+
+            callStackLevel++;
+            result = proceedingJoinPoint.proceed();
         } else {
             Object caller = proceedingJoinPoint.getTarget();
             String vdmObjectName = "";
+            callStackLevel = 0;
 
             if (!vdmObjects.containsKey(caller)) {
                 vdmObjectName = "vdmObject" + caller.hashCode();
@@ -36,7 +51,6 @@ public class VDMOperationAspect {
                 vdmObjectName = vdmObjects.get(caller);
             }
 
-            String fullMethodName = proceedingJoinPoint.toShortString().substring("call(".length());
             String methodName = BaseGenerator.methodsSuffix
                     + fullMethodName.substring(fullMethodName.indexOf(".") + 1, fullMethodName.indexOf("("));
             String lineToExecute = vdmObjectName + "." + methodName + "(";
@@ -52,9 +66,10 @@ public class VDMOperationAspect {
             }
             lineToExecute += ")";
 
-            System.out.println("Executing " + lineToExecute);
-            Object result = RemoteController.interpreter.execute(lineToExecute);
-            return result;
+            System.out.println("Executed " + lineToExecute);
+            result = RemoteController.interpreter.execute(lineToExecute);
         }
+        lastCalledMethodName = fullMethodName;
+        return result;
     }
 }
