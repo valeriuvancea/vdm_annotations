@@ -18,21 +18,23 @@ public class Test {
                 add(3);
                 add(5);
             }
-        }));
+        }, "asdf", MessageField.CERT_CA));
     }
 
     @VDMOperation(preCondition = "c=true", postCondition = "e=3")
     public String bestFunction(boolean c, int e, List<Integer> test) {
-        return bestFunction2323(c, e, test);
+        return bestFunction2323(c, e, test, "asd", MessageField.TYPE);
     }
 
     @VDMOperation(preCondition = "c=true", postCondition = "e=2")
-    public String bestFunction2323(boolean c, int e, List<Integer> test) {
+    public String bestFunction2323(boolean c, int e, List<Integer> test, String t, MessageField a) {
         System.out.println(c);
         System.out.println(e);
         System.out.println(test);
+        System.out.println(t);
+        System.out.println(a);
         if (c) {
-            return bestFunction2323(false, e, test);
+            return bestFunction2323(false, e, test, t, a);
         } else {
             return "asdw";
         }

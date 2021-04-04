@@ -9,7 +9,7 @@ import com.squareup.javapoet.TypeName;
 
 import org.overture.interpreter.values.*;
 
-@SuppressWarnings({ "serial", "unchecked" })
+@SuppressWarnings({ "serial", "unchecked", "rawtypes" })
 public class VDMTypesHelper {
     public static final Set<Class<?>> supportedJavaClasses = new HashSet<Class<?>>() {
         {
@@ -103,6 +103,8 @@ public class VDMTypesHelper {
             return getVDMStringFromJavaMapValue(value, unsupportedTypeException);
         } else if (value instanceof Collection) {
             return getVDMStringFromJavaCollectionValue(value, unsupportedTypeException);
+        } else if (Enum.class.isAssignableFrom(valuesClass)) {
+            return "\"" + ((Enum<?>) value).name() + "\"";
         } else {
             throw unsupportedTypeException;
         }
@@ -159,6 +161,8 @@ public class VDMTypesHelper {
             return new MapValue(vdmMapValues);
         } else if (providedType.isArray()) {
             return getVDMValueFromJavaValue(Arrays.asList(value));
+        } else if (Enum.class.isAssignableFrom(providedType)) {
+            return getVDMValueFromJavaValue(((Enum<?>) value).name());
         } else {
             throw unsupportedTypeException;
         }
@@ -188,6 +192,8 @@ public class VDMTypesHelper {
                 classToReturn = SeqValue.class;
             } else if (Map.class.isAssignableFrom(providedClassType)) {
                 classToReturn = MapValue.class;
+            } else if (Enum.class.isAssignableFrom(providedClassType)) {
+                classToReturn = SeqValue.class;
             } else {
                 throw unsupportedTypeException;
             }
@@ -217,7 +223,7 @@ public class VDMTypesHelper {
         } else if (type instanceof ArrayTypeName) {
             String arrayType = typeString.substring(0, typeString.indexOf("["));
             typeToReturn = "seq of " + getVDMTypeAsStringFromJavaType(TypeName.get(getClassFromString(arrayType)));
-        } else {
+        } else if (typeString.contains("<")) {
             Class<?> providedClassType = Class.forName(typeString.substring(0, typeString.indexOf("<")));
             String genericTypeString = typeString.substring(typeString.indexOf("<") + 1, typeString.indexOf(">"));
 
@@ -235,6 +241,13 @@ public class VDMTypesHelper {
                         TypeName.get(getClassFromString(genericValueType)));
 
                 typeToReturn = "map " + vdmMapKeyType + " to " + vdmMapValueType;
+            } else {
+                throw unsupportedTypeException;
+            }
+        } else {
+            Class<?> providedClassType = Class.forName(typeString);
+            if (Enum.class.isAssignableFrom(providedClassType)) {
+                typeToReturn = "seq of char";
             } else {
                 throw unsupportedTypeException;
             }
@@ -273,8 +286,17 @@ public class VDMTypesHelper {
         } else if (className.contains("[")) {
             return getJavaArrayValueFromVDMValue(value, className, unsupportedTypeException);
         } else {
+            Class providedClass = getClassFromString(className);
+            if (Enum.class.isAssignableFrom(providedClass)) {
+                return (ReturnType) getEnumValueFromString(providedClass,
+                        stringValue.substring(1, stringValue.length() - 1));
+            }
             throw unsupportedTypeException;
         }
+    }
+
+    private static <T extends Enum<T>> T getEnumValueFromString(Class<T> enumClass, String value) {
+        return T.valueOf(enumClass, value);
     }
 
     private static <T> String getVDMStringFromJavaMapValue(T value, Exception exception) throws Exception {
