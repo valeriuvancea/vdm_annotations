@@ -1,7 +1,8 @@
 package org.vdm.generators;
 
+import java.io.File;
 import java.io.FileInputStream;
-import java.nio.file.Paths;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,51 +24,60 @@ import org.vdm.annotations.*;
 import org.vdm.overture.VDMTypesHelper;
 import org.w3c.dom.Document;
 
-public class JavaClassGenerator implements IGenerator {
-    private String className;
-    private List<Method> methods;
-
+public class JavaClassGenerator extends BaseGenerator {
     public JavaClassGenerator(String className, List<Method> methods) {
-        this.className = className;
-        this.methods = methods;
+        super(className, methods);
     }
 
+    @Override
     public void generate() {
         try {
             List<MethodSpec> methodsToAdd = generateMethodsForJavaClass(methods);
-            String classNameToAdd = "VDM" + className.substring(className.lastIndexOf(".") + 1);
-            String packageName = "generated.vdm";
             TypeSpec classSpec = TypeSpec.classBuilder(classNameToAdd).addModifiers(Modifier.PUBLIC)
-                    .addMethods(methodsToAdd).superclass(Class.forName(className)).build();
+                    .addMethods(methodsToAdd).addSuperinterface(VDMJavaInterface.class).build();
 
-            String path = System.getProperty("user.dir").replace("\\", "/");
+            String path = System.getProperty("user.dir").replace("\\", "/") + "/";
             String javaSourcesPath = getJavaSourcePathFromPomXML(path);
 
             if (javaSourcesPath != null && !javaSourcesPath.isEmpty()) {
-                path += "/" + javaSourcesPath + "/";
+                path += javaSourcesPath + "/";
             } else {
-                VDMMethodProcessor.writeWarning("Din not found sourcesPath in the pom.xml file! The path " + path
+                VDMOperationProcessor.writeWarning("Din not found sourcesPath in the pom.xml file! The path " + path
                         + " will be used for sources generation");
             }
+            path += packageName.replace(".", "/") + "/";
 
-            JavaFile javaFile = JavaFile.builder(packageName, classSpec).build();
-            javaFile.writeTo(Paths.get(path));
-            VDMMethodProcessor.writeNote(
-                    "Java class " + classNameToAdd + " generated at " + path + packageName.replace(".", "/") + "/");
-        } catch (Exception e) {
-            VDMMethodProcessor.writeError(e.getMessage());
+            File directory = new File(path);
+            directory.mkdirs();
+
+            String filePath = path + classNameToAdd + ".java";
+            File javaFile = new File(filePath);
+            String javaFileContent = JavaFile.builder(packageName, classSpec).build().toString()
+                    .replace("class " + classNameToAdd, "class " + classNameToAdd + " extends " + className);
+
+            if (!javaFile.exists()) {
+                javaFile.createNewFile();
+                FileWriter writer = new FileWriter(filePath);
+                writer.write(javaFileContent);
+                writer.close();
+                VDMOperationProcessor.writeNote(
+                        "Java class " + classNameToAdd + " generated at " + path + packageName.replace(".", "/") + "/");
+            }
+        } catch (Exception exception) {
+            VDMOperationProcessor.writeError(exception.getMessage());
+            exception.printStackTrace();
         }
     }
 
     private List<MethodSpec> generateMethodsForJavaClass(List<Method> methods) throws Exception {
         List<MethodSpec> methodsToAdd = new ArrayList<>();
         for (Method methodToAdd : methods) {
-            MethodSpec.Builder builder = MethodSpec.methodBuilder(methodToAdd.getName()).addModifiers(Modifier.PUBLIC)
-                    .returns(TypeName.get(Value.class));
+            MethodSpec.Builder builder = MethodSpec.methodBuilder(getMethodName(methodToAdd))
+                    .addModifiers(Modifier.PUBLIC).returns(TypeName.get(Value.class));
 
             Map<String, TypeName> parameters = methodToAdd.getParameters();
             for (String parameter : parameters.keySet()) {
-                builder.addParameter(VDMTypesHelper.getVDMTypeNameFromJavaType(parameters.get(parameter)), parameter);
+                builder.addParameter(Value.class, parameter);
             }
 
             List<Object> statementTypes = new ArrayList<>();
@@ -111,7 +121,7 @@ public class JavaClassGenerator implements IGenerator {
             String expression = "/project/properties/sourcesPath[1]";
             javaSourcesPath = (String) xPath.compile(expression).evaluate(xmlDocument, XPathConstants.STRING);
         } catch (Exception exception) {
-            VDMMethodProcessor.writeWarning("Could not open " + path + "/pom.xml!");
+            VDMOperationProcessor.writeWarning("Could not open " + path + "/pom.xml!");
         }
         return javaSourcesPath;
     }

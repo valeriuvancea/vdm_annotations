@@ -91,7 +91,7 @@
             </goals>
             <configuration>
               <annotationProcessors>
-                <annotationProcessor>org.vdm.annotations.VDMMethodProcessor</annotationProcessor>
+                <annotationProcessor>org.vdm.annotations.VDMOperationProcessor</annotationProcessor>
               </annotationProcessors>
             </configuration>
           </execution>
