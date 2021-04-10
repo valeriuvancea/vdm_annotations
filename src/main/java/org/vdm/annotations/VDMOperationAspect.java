@@ -3,11 +3,14 @@ package org.vdm.annotations;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.squareup.javapoet.TypeName;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.*;
 import org.vdm.generators.BaseGenerator;
 import org.vdm.overture.RemoteController;
 import org.vdm.overture.VDMTypesHelper;
+import org.aspectj.lang.reflect.MethodSignature;
 
 @Aspect
 public class VDMOperationAspect {
@@ -66,8 +69,14 @@ public class VDMOperationAspect {
             }
             lineToExecute += ")";
 
-            System.out.println("Executed " + lineToExecute);
             result = RemoteController.interpreter.execute(lineToExecute);
+            System.out.println("Executed " + lineToExecute + " and got the result " + result);
+
+            Signature signature =  proceedingJoinPoint.getSignature();
+            Class<?> returnType = ((MethodSignature) signature).getReturnType();
+            if (returnType != void.class) {
+                result = VDMTypesHelper.getJavaValueFromVDMString(result.toString(), TypeName.get(returnType).toString());
+            }
         }
         lastCalledMethodName = fullMethodName;
         return result;

@@ -1,6 +1,7 @@
 package org.vdm.overture;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -263,33 +264,46 @@ public class VDMTypesHelper {
         Exception unsupportedTypeException = new Exception(
                 "Could not convert VDM value " + stringValue + " to Java type " + className);
 
-        if (className.equals("byte") || className.equals("java.lang.Byte")) {
-            return (ReturnType) Byte.valueOf(stringValue);
-        } else if (className.equals("short") || className.equals("java.lang.Short")) {
-            return (ReturnType) Short.valueOf(stringValue);
-        } else if (className.equals("int") || className.equals("java.lang.Integer")) {
-            return (ReturnType) Integer.valueOf(stringValue);
-        } else if (className.equals("long") || className.equals("java.lang.Long")) {
-            return (ReturnType) Long.valueOf(stringValue);
-        } else if (className.equals("float") || className.equals("java.lang.Float")) {
-            return (ReturnType) Float.valueOf(stringValue);
-        } else if (className.equals("double") || className.equals("java.lang.Double")) {
-            return (ReturnType) Double.valueOf(stringValue);
-        } else if ((className.equals("char") || className.equals("java.lang.Character")) && !stringValue.isEmpty()) {
-            return (ReturnType) Character.valueOf(stringValue.charAt(0));
-        } else if (className.equals("boolean") || className.equals("java.lang.Boolean")) {
-            return (ReturnType) Boolean.valueOf(stringValue);
-        } else if (className.equals("java.lang.String")) {
-            return (ReturnType) stringValue.substring(1, stringValue.length() - 1); // Removing quotes added by VDM
-        } else if (className.contains("<")) {
+        if (className.contains("<")) {
             return getJavaValueWithGenericFromVDMValue(value, className, unsupportedTypeException);
         } else if (className.contains("[")) {
             return getJavaArrayValueFromVDMValue(value, className, unsupportedTypeException);
         } else {
+            return getJavaValueFromVDMString(stringValue, className);
+        }
+    }
+
+    // For the VDM interpreter return value used in aspect
+    public static <ReturnType> ReturnType getJavaValueFromVDMString(String value, String className) throws Exception {
+        Exception unsupportedTypeException = new Exception(
+                "Could not convert VDM string " + value + " to Java type " + className);
+
+        if (className.equals("byte") || className.equals("java.lang.Byte")) {
+            return (ReturnType) Byte.valueOf(value);
+        } else if (className.equals("short") || className.equals("java.lang.Short")) {
+            return (ReturnType) Short.valueOf(value);
+        } else if (className.equals("int") || className.equals("java.lang.Integer")) {
+            return (ReturnType) Integer.valueOf(value);
+        } else if (className.equals("long") || className.equals("java.lang.Long")) {
+            return (ReturnType) Long.valueOf(value);
+        } else if (className.equals("float") || className.equals("java.lang.Float")) {
+            return (ReturnType) Float.valueOf(value);
+        } else if (className.equals("double") || className.equals("java.lang.Double")) {
+            return (ReturnType) Double.valueOf(value);
+        } else if ((className.equals("char") || className.equals("java.lang.Character")) && !value.isEmpty()) {
+            return (ReturnType) Character.valueOf(value.charAt(0));
+        } else if (className.equals("boolean") || className.equals("java.lang.Boolean")) {
+            return (ReturnType) Boolean.valueOf(value);
+        } else if (className.equals("java.lang.String")) {
+            return (ReturnType) value.substring(1, value.length() - 1); // Removing quotes added by VDM
+        } else if (className.contains("<")) {
+            return getJavaValueWithGenericFromVDMString(value, className, unsupportedTypeException);
+        } else if (className.contains("[")) {
+            return getJavaArrayValueFromVDMString(value, className, unsupportedTypeException);
+        } else {
             Class providedClass = getClassFromString(className);
             if (Enum.class.isAssignableFrom(providedClass)) {
-                return (ReturnType) getEnumValueFromString(providedClass,
-                        stringValue.substring(1, stringValue.length() - 1));
+                return (ReturnType) getEnumValueFromString(providedClass, value.substring(1, value.length() - 1));
             }
             throw unsupportedTypeException;
         }
@@ -367,11 +381,19 @@ public class VDMTypesHelper {
         String classNameWithoutGeneric = className.substring(0, className.indexOf("<"));
         String genericClassName = className.substring(className.indexOf("<") + 1, className.indexOf(">"));
         Class<?> classWithoutGeneric = Class.forName(classNameWithoutGeneric);
+        int classWithoutGenericModifiers = classWithoutGeneric.getModifiers();
 
         if (value instanceof MapValue) {
             String keyClassName = genericClassName.substring(0, className.indexOf(","));
             String valueClassName = genericClassName.substring(className.indexOf(",") + 1);
-            Map<?, ?> map = (Map<?, ?>) classWithoutGeneric.getConstructor().newInstance();
+            Map<Object, Object> map;
+
+            if (Modifier.isAbstract(classWithoutGenericModifiers)
+                    || Modifier.isInterface(classWithoutGenericModifiers)) {
+                map = new HashMap();
+            } else {
+                map = (Map<Object, Object>) classWithoutGeneric.getConstructor().newInstance();
+            }
 
             for (Entry<? extends Value, ? extends Value> mapElement : ((MapValue) value).values.entrySet()) {
                 map.put(getJavaValueFromVDMValue(mapElement.getKey(), keyClassName),
@@ -380,7 +402,15 @@ public class VDMTypesHelper {
 
             return (ReturnType) map;
         } else if (value instanceof SeqValue) {
-            Collection<?> collection = new ArrayList();
+            Collection<Object> collection;
+
+            if (Modifier.isAbstract(classWithoutGenericModifiers)
+                    || Modifier.isInterface(classWithoutGenericModifiers)) {
+                collection = new ArrayList();
+            } else {
+                collection = (Collection<Object>) classWithoutGeneric.getConstructor().newInstance();
+            }
+
             Iterator<? extends Value> iterator = (((SeqValue) value).values).iterator();
 
             while (iterator.hasNext()) {
@@ -389,7 +419,15 @@ public class VDMTypesHelper {
 
             return (ReturnType) collection;
         } else if (value instanceof Set) {
-            Set<?> set = (Set<?>) new ArrayList();
+            Set<Object> set;
+
+            if (Modifier.isAbstract(classWithoutGenericModifiers)
+                    || Modifier.isInterface(classWithoutGenericModifiers)) {
+                set = new HashSet();
+            } else {
+                set = (Set<Object>) classWithoutGeneric.getConstructor().newInstance();
+            }
+
             Iterator<? extends Value> iterator = (((SetValue) value).values).iterator();
 
             while (iterator.hasNext()) {
@@ -427,6 +465,104 @@ public class VDMTypesHelper {
         }
 
         return (ReturnType) array;
+    }
+
+    private static <ReturnType> ReturnType getJavaArrayValueFromVDMString(String value, String className,
+            Exception exception) throws Exception {
+        String arrayItemClassName = className.substring(0, className.indexOf("["));
+
+        String[] array = new String[0];
+        if ((value.indexOf("[") == 0 && value.lastIndexOf("]") == value.length() - 1)
+                || (value.indexOf("{") == 0 && value.lastIndexOf("}") == value.length() - 1)) {
+            array = value.substring(1, value.length() - 1).trim().split(",");
+        } else {
+            throw exception;
+        }
+
+        int index = 0;
+        for (String element : array) {
+            Array.set(array, index++, getJavaValueFromVDMString(element, arrayItemClassName));
+        }
+
+        return (ReturnType) array;
+    }
+
+    private static <ReturnType> ReturnType getJavaValueWithGenericFromVDMString(String value, String className,
+            Exception exception) throws Exception {
+        String classNameWithoutGeneric = className.substring(0, className.indexOf("<"));
+        String genericClassName = className.substring(className.indexOf("<") + 1, className.indexOf(">"));
+        Class<?> classWithoutGeneric = Class.forName(classNameWithoutGeneric);
+        int classWithoutGenericModifiers = classWithoutGeneric.getModifiers();
+
+        String[] array = new String[0];
+        if ((value.indexOf("[") == 0 && value.lastIndexOf("]") == value.length() - 1)
+                || (value.indexOf("{") == 0 && value.lastIndexOf("}") == value.length() - 1)) {
+            array = value.substring(1, value.length() - 1).trim().split(",");
+        } else {
+            throw exception;
+        }
+
+        if (value.indexOf("[") == 0) {
+            Collection<Object> collection;
+
+            if (Modifier.isAbstract(classWithoutGenericModifiers)
+                    || Modifier.isInterface(classWithoutGenericModifiers)) {
+                collection = new ArrayList();
+            } else {
+                collection = (Collection<Object>) classWithoutGeneric.getConstructor().newInstance();
+            }
+
+            for (String element : array) {
+                collection.add(getJavaValueFromVDMString(element, genericClassName));
+            }
+
+            return (ReturnType) collection;
+        } else {
+            if (Map.class.isAssignableFrom(classWithoutGeneric)) {
+                String keyClassName = genericClassName.substring(0, className.indexOf(","));
+                String valueClassName = genericClassName.substring(className.indexOf(",") + 1);
+                Map<Object, Object> map;
+
+                if (Modifier.isAbstract(classWithoutGenericModifiers)
+                        || Modifier.isInterface(classWithoutGenericModifiers)) {
+                    map = new HashMap();
+                } else {
+                    map = (Map<Object, Object>) classWithoutGeneric.getConstructor().newInstance();
+                }
+
+                for (String element : array) {
+                    int indexOfVDMMapSymbol = element.indexOf("|->");
+
+                    if (indexOfVDMMapSymbol == -1) {
+                        throw exception;
+                    } else if (indexOfVDMMapSymbol != element.lastIndexOf("|->")) {
+                        throw new Exception("Can not convert VDM string " + value
+                                + " to Java value because it contains a complex map.");
+                    } else {
+                        map.put(getJavaValueFromVDMString(element.substring(0, indexOfVDMMapSymbol), keyClassName),
+                                getJavaValueFromVDMString(element.substring(indexOfVDMMapSymbol + 1), valueClassName));
+                    }
+                }
+
+                return (ReturnType) map;
+            } else {
+                Set<Object> set;
+
+                if (Modifier.isAbstract(classWithoutGenericModifiers)
+                        || Modifier.isInterface(classWithoutGenericModifiers)) {
+                    set = new HashSet();
+                } else {
+                    set = (Set<Object>) classWithoutGeneric.getConstructor().newInstance();
+                }
+
+                for (String element : array) {
+                    set.add(getJavaValueFromVDMString(element, genericClassName));
+                }
+
+                return (ReturnType) set;
+            }
+        }
+
     }
 
     private static Class<?> getClassFromString(String text) throws Exception {
