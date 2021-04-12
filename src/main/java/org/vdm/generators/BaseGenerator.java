@@ -8,7 +8,7 @@ public abstract class BaseGenerator {
     protected List<Method> methods;
     protected final String classNameToAdd;
     public static final String packageName = "generated.vdm";
-    public static final String methodsSuffix = "GENERATED_";
+    public static final String methodsPrefix = "JAVA_";
     public static final String classPrefix = "VDM";
 
     public BaseGenerator(String className, List<Method> methods) {
@@ -20,6 +20,6 @@ public abstract class BaseGenerator {
     public abstract void generate();
 
     protected String getMethodName(Method method) {
-        return methodsSuffix + method.getName();
+        return methodsPrefix + method.getName();
     }
 }

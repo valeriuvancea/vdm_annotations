@@ -7,7 +7,7 @@ import com.squareup.javapoet.TypeName;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.*;
-import org.vdm.generators.BaseGenerator;
+import org.vdm.generators.VDMClassGenerator;
 import org.vdm.overture.RemoteController;
 import org.vdm.overture.VDMTypesHelper;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -44,9 +44,8 @@ public class VDMOperationAspect {
             callStackLevel = 0;
 
             if (!vdmObjects.containsKey(caller)) {
-                vdmObjectName = "vdmObject" + caller.hashCode();
-                String vdmClassName = BaseGenerator.packageName.replace(".", "_") + "_" + BaseGenerator.classPrefix
-                        + caller.getClass().getSimpleName();
+                String vdmClassName = caller.getClass().getSimpleName();
+                vdmObjectName = vdmClassName + caller.hashCode();
                 RemoteController.interpreter.create(vdmObjectName, "new " + vdmClassName + "()");
                 System.out.println("created vdm object " + vdmObjectName + " of class " + vdmClassName);
                 vdmObjects.put(caller, vdmObjectName);
@@ -54,7 +53,7 @@ public class VDMOperationAspect {
                 vdmObjectName = vdmObjects.get(caller);
             }
 
-            String methodName = BaseGenerator.methodsSuffix
+            String methodName = VDMClassGenerator.vdmClassOperationPrefix
                     + fullMethodName.substring(fullMethodName.indexOf(".") + 1, fullMethodName.indexOf("("));
             String lineToExecute = vdmObjectName + "." + methodName + "(";
             boolean isFirstArgument = true;
