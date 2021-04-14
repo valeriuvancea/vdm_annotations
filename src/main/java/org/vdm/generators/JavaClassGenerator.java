@@ -6,7 +6,6 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -17,7 +16,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-
 import org.overture.interpreter.values.Value;
 import org.overture.interpreter.values.VoidValue;
 import org.vdm.annotations.*;
@@ -33,46 +31,61 @@ public class JavaClassGenerator extends BaseGenerator {
     public void generate() {
         try {
             List<MethodSpec> methodsToAdd = generateMethodsForJavaClass(methods);
+            methodsToAdd.add(0, generateJavaObjectSetterForJavaClass());
             TypeSpec classSpec = TypeSpec.classBuilder(classNameToAdd).addModifiers(Modifier.PUBLIC)
-                    .addMethods(methodsToAdd).addSuperinterface(VDMJavaInterface.class).build();
-
+                    .addMethods(methodsToAdd).addField(Class.forName(className), "javaObject", Modifier.PRIVATE)
+                    .addSuperinterface(VDMJavaInterface.class).build();
             String path = System.getProperty("user.dir").replace("\\", "/") + "/";
             String javaSourcesPath = getJavaSourcePathFromPomXML(path);
+            String generatedJavaSourcesFolder = packageName.replace(".", "/") + "/";
 
             if (javaSourcesPath != null && !javaSourcesPath.isEmpty()) {
                 path += javaSourcesPath + "/";
             } else {
                 VDMOperationProcessor.writeWarning("Din not found sourcesPath in the pom.xml file! The path " + path
-                        + " will be used for sources generation");
+                        + generatedJavaSourcesFolder + " will be used for Java sources generation");
             }
-            path += packageName.replace(".", "/") + "/";
+
+            path += generatedJavaSourcesFolder;
 
             File directory = new File(path);
             directory.mkdirs();
 
             String filePath = path + classNameToAdd + ".java";
             File javaFile = new File(filePath);
-            String javaFileContent = JavaFile.builder(packageName, classSpec).build().toString()
-                    .replace("class " + classNameToAdd, "class " + classNameToAdd + " extends " + className);
+            String javaFileContent = JavaFile.builder(packageName, classSpec).build().toString();
 
-            if (!javaFile.exists()) {
-                javaFile.createNewFile();
-                FileWriter writer = new FileWriter(filePath);
-                writer.write(javaFileContent);
-                writer.close();
-                VDMOperationProcessor.writeNote(
-                        "Java class " + classNameToAdd + " generated at " + path + packageName.replace(".", "/") + "/");
+            if (javaFile.exists()) {
+                javaFile.delete();
             }
+
+            javaFile.createNewFile();
+            FileWriter writer = new FileWriter(filePath);
+            writer.write(javaFileContent);
+            writer.close();
+            VDMOperationProcessor.writeNote("Java class " + classNameToAdd + " generated at " + filePath);
+
         } catch (Exception exception) {
             VDMOperationProcessor.writeError(exception.getMessage());
             exception.printStackTrace();
         }
     }
 
+    private MethodSpec generateJavaObjectSetterForJavaClass() {
+        return MethodSpec.methodBuilder(setJavaObjectMethodName).addModifiers(Modifier.PUBLIC)
+                .addParameter(Value.class, "vdmObjectName")
+                .addStatement("String vdmObjectNameString = vdmObjectName.toString()")
+                .addStatement(
+                        "javaObject = $T.getObjectWithVdmName(vdmObjectNameString.substring(1, vdmObjectNameString.length() - 1))",
+                        VDMOperationAspect.class)
+                .addStatement("return new $T()", VoidValue.class).returns(Value.class).addException(Exception.class)
+                .build();
+    }
+
     private List<MethodSpec> generateMethodsForJavaClass(List<Method> methods) throws Exception {
         List<MethodSpec> methodsToAdd = new ArrayList<>();
         for (Method methodToAdd : methods) {
-            MethodSpec.Builder builder = MethodSpec.methodBuilder(getMethodName(methodToAdd))
+            MethodSpec.Builder builder = MethodSpec.methodBuilder(methodToAdd.getName())
                     .addModifiers(Modifier.PUBLIC).returns(TypeName.get(Value.class));
 
             Map<String, TypeName> parameters = methodToAdd.getParameters();
@@ -92,7 +105,7 @@ public class JavaClassGenerator extends BaseGenerator {
                 return accumulator;
             });
 
-            String statement = "super." + methodToAdd.getName() + "(" + parametersName + ")";
+            String statement = "javaObject." + methodToAdd.getName() + "(" + parametersName + ")";
             if (methodToAdd.getReturnType() != TypeName.get(void.class)) {
                 statementTypes.add(0, VDMTypesHelper.class);
                 statement = "return $T.getVDMValueFromJavaValue(" + statement + ")";

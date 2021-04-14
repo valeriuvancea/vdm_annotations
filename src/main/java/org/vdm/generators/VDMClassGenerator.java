@@ -118,6 +118,7 @@ public class VDMClassGenerator extends BaseGenerator {
                     "\t" + vdmInterfaceObjectName + ": " + vdmInterfaceName + " := new " + vdmInterfaceName + "();\n");
         }
         writer.write("operations\n");
+        writer.write(getSetJavaObjectMethod(isInterface));
         for (Method operation : methods) {
             writer.write(getVDMOperation(operation, isInterface));
         }
@@ -168,7 +169,7 @@ public class VDMClassGenerator extends BaseGenerator {
 
                 // edit existing methods
                 String vdmDefinitionRegex = vdmOperationAccess + " " + vdmClassOperationPrefix
-                        + "[^:]*:((?!==>)[^]])*==>((?!==)[^]])*==";
+                        + "[^:]*:((?!==>)[^]])*==>((?!==)[^]])*== ?";
                 Matcher matcher = Pattern.compile(vdmDefinitionRegex).matcher(oldOperationsContent);
                 while (matcher.find()) {
                     LexTokenReader lexTokenReader = new LexTokenReader(oldOperationsContent.substring(matcher.end()),
@@ -255,6 +256,22 @@ public class VDMClassGenerator extends BaseGenerator {
         return result;
     }
 
+    private String getSetJavaObjectMethod(boolean isForInterface) {
+        String result = "";
+        String constructorParameterName = "vdmObjectName";
+
+        result += "public " + setJavaObjectMethodName + ": (seq of char) ==> ()\n";
+        result += setJavaObjectMethodName + "(" + constructorParameterName + ") == ";
+
+        if (isForInterface) {
+            result += "is not yet specified;\n\n";
+        } else {
+            result += vdmInterfaceObjectName + "." + setJavaObjectMethodName + "(" + constructorParameterName + ");\n\n";
+        }
+
+        return result;
+    }
+
     String getVDMOperationDefinition(Method method, boolean isForInterface) throws Exception {
         String definition = "";
 
@@ -283,15 +300,15 @@ public class VDMClassGenerator extends BaseGenerator {
     }
 
     String getVDMSuperClassOperationExecutionWithoutParameters(Method method) {
-        return vdmInterfaceObjectName + "." + getMethodName(method);
+        return vdmInterfaceObjectName + "." + method.getName();
     }
 
     String getVDMInterfaceOperationNameWithAccess(Method method) {
-        return vdmOperationAccess + " " + getVDMInterfaceOperationName(method);
+        return "pure " + vdmOperationAccess + " " + getVDMInterfaceOperationName(method);
     }
 
     String getVDMInterfaceOperationName(Method method) {
-        return getMethodName(method);
+        return method.getName();
     }
 
     String getVDMClassOperationNameWithAccess(Method method) {
