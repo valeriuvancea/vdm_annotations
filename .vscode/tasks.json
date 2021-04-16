@@ -7,17 +7,17 @@
             "label": "build",
             "type": "shell",
             "command": "mvn package",
-            "group": "build"
-        },
-        {
-            "label": "build and install",
-            "type": "shell",
-            "command": "mvn install:install-file -DgroupId=org.vdm -DartifactId=vdm-annotations -Dversion=1.0 -Dfile=\"C:/AU/Master Thesis/vdm_annotations/target/vdm-annotations-1.0-jar-with-dependencies.jar\" -Dpackaging=jar -DgeneratePom=true -DlocalRepositoryPath=\"C:/AU/Master Thesis/testRepo/\"  -DcreateChecksum=true",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "dependsOn": "build"
+        },
+        {
+            "label": "build and install",
+            "type": "shell",
+            "command": "mvn install:install-file -DgroupId=org.vdm -DartifactId=vdm-annotations -Dversion=1.0 -Dfile=\"${workspaceFolder}/target/vdm-annotations-1.0-jar-with-dependencies.jar\" -Dpackaging=jar -DgeneratePom=true -DlocalRepositoryPath=\"C:/AU/Master Thesis/testRepo/\"  -DcreateChecksum=true",
+            "dependsOn": "build",
+            "group": "build",
         },
         {
             "label": "debug-compile",
