@@ -33,8 +33,7 @@ public class JavaClassGenerator extends BaseGenerator {
             List<MethodSpec> methodsToAdd = generateMethodsForJavaClass(methods);
             methodsToAdd.add(0, generateJavaObjectSetterForJavaClass());
             TypeSpec classSpec = TypeSpec.classBuilder(classNameToAdd).addModifiers(Modifier.PUBLIC)
-                    .addMethods(methodsToAdd).addField(Class.forName(className), "javaObject", Modifier.PRIVATE)
-                    .addSuperinterface(VDMJavaInterface.class).build();
+                    .addMethods(methodsToAdd).addSuperinterface(VDMJavaInterface.class).build();
             String path = System.getProperty("user.dir").replace("\\", "/") + "/";
             String javaSourcesPath = getJavaSourcePathFromPomXML(path);
             String generatedJavaSourcesFolder = packageName.replace(".", "/") + "/";
@@ -61,7 +60,8 @@ public class JavaClassGenerator extends BaseGenerator {
 
             javaFile.createNewFile();
             FileWriter writer = new FileWriter(filePath);
-            writer.write(javaFileContent);
+            writer.write(javaFileContent.replace("implements VDMJavaInterface {",
+                    "implements VDMJavaInterface {\n" + "\tprivate " + className + " javaObject;\n"));
             writer.close();
             VDMOperationProcessor.writeNote("Java class " + classNameToAdd + " generated at " + filePath);
 
@@ -85,8 +85,8 @@ public class JavaClassGenerator extends BaseGenerator {
     private List<MethodSpec> generateMethodsForJavaClass(List<Method> methods) throws Exception {
         List<MethodSpec> methodsToAdd = new ArrayList<>();
         for (Method methodToAdd : methods) {
-            MethodSpec.Builder builder = MethodSpec.methodBuilder(methodToAdd.getName())
-                    .addModifiers(Modifier.PUBLIC).returns(TypeName.get(Value.class));
+            MethodSpec.Builder builder = MethodSpec.methodBuilder(methodToAdd.getName()).addModifiers(Modifier.PUBLIC)
+                    .returns(TypeName.get(Value.class));
 
             Map<String, TypeName> parameters = methodToAdd.getParameters();
             for (String parameter : parameters.keySet()) {

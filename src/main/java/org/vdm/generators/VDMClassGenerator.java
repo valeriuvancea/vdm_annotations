@@ -266,7 +266,8 @@ public class VDMClassGenerator extends BaseGenerator {
         if (isForInterface) {
             result += "is not yet specified;\n\n";
         } else {
-            result += vdmInterfaceObjectName + "." + setJavaObjectMethodName + "(" + constructorParameterName + ");\n\n";
+            result += vdmInterfaceObjectName + "." + setJavaObjectMethodName + "(" + constructorParameterName
+                    + ");\n\n";
         }
 
         return result;
@@ -304,7 +305,8 @@ public class VDMClassGenerator extends BaseGenerator {
     }
 
     String getVDMInterfaceOperationNameWithAccess(Method method) {
-        return "pure " + vdmOperationAccess + " " + getVDMInterfaceOperationName(method);
+        return (method.getReturnType() != TypeName.get(void.class) ? "pure " : "") + vdmOperationAccess + " "
+                + getVDMInterfaceOperationName(method);
     }
 
     String getVDMInterfaceOperationName(Method method) {
