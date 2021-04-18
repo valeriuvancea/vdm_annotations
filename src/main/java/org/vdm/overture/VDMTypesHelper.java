@@ -4,6 +4,8 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.TypeName;
@@ -161,7 +163,8 @@ public class VDMTypesHelper {
 
             return new MapValue(vdmMapValues);
         } else if (providedType.isArray()) {
-            return getVDMValueFromJavaValue(Arrays.asList(value));
+            return getVDMValueFromJavaValue(IntStream.range(0, Array.getLength(value))
+                    .mapToObj(i -> Array.get(value, i)).collect(Collectors.toList()));
         } else if (Enum.class.isAssignableFrom(providedType)) {
             return getVDMValueFromJavaValue(((Enum<?>) value).name());
         } else {
@@ -366,13 +369,22 @@ public class VDMTypesHelper {
 
     private static <T> String getVDMStringFromArrayValue(T value) {
         if (value.getClass() == char[].class || value.getClass() == Character[].class) {
-            StringBuilder builder = new StringBuilder();
-            for (Object character : (Object[]) value) {
-                builder.append(character);
+            String returnString = "";
+            for (int i = 0; i < Array.getLength(value); i++) {
+                returnString += Array.get(value, i);
             }
-            return "\"" + builder.toString() + "\"";
+            return "\"" + returnString + "\"";
         } else {
-            return Arrays.toString((Object[]) value);
+            String returnString = "[";
+            boolean isFirst = true;
+            for (int i = 0; i < Array.getLength(value); i++) {
+                if (!isFirst) {
+                    returnString += ",";
+                }
+                returnString += Array.get(value, i);
+            }
+            returnString += "]";
+            return returnString;
         }
     }
 
@@ -474,17 +486,18 @@ public class VDMTypesHelper {
         String[] array = new String[0];
         if ((value.indexOf("[") == 0 && value.lastIndexOf("]") == value.length() - 1)
                 || (value.indexOf("{") == 0 && value.lastIndexOf("}") == value.length() - 1)) {
-            array = value.substring(1, value.length() - 1).trim().split(",");
+            array = value.substring(1, value.length() - 1).replaceAll("\\s", "").split(",");
         } else {
             throw exception;
         }
 
+        Object returnArray = Array.newInstance(getClassFromString(arrayItemClassName), array.length);
         int index = 0;
         for (String element : array) {
-            Array.set(array, index++, getJavaValueFromVDMString(element, arrayItemClassName));
+            Array.set(returnArray, index++, getJavaValueFromVDMString(element, arrayItemClassName));
         }
 
-        return (ReturnType) array;
+        return (ReturnType) returnArray;
     }
 
     private static <ReturnType> ReturnType getJavaValueWithGenericFromVDMString(String value, String className,
@@ -497,7 +510,7 @@ public class VDMTypesHelper {
         String[] array = new String[0];
         if ((value.indexOf("[") == 0 && value.lastIndexOf("]") == value.length() - 1)
                 || (value.indexOf("{") == 0 && value.lastIndexOf("}") == value.length() - 1)) {
-            array = value.substring(1, value.length() - 1).trim().split(",");
+            array = value.substring(1, value.length() - 1).replaceAll("\\s", "").split(",");
         } else {
             throw exception;
         }
