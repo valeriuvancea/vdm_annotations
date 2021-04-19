@@ -361,7 +361,7 @@ public class VDMTypesHelper {
         if (value.getClass() == char.class || value.getClass() == Character.class) {
             return "'" + value.toString() + "'";
         } else if (value.getClass() == String.class) {
-            return "\"" + value.toString() + "\"";
+            return "\"" + value.toString().replace("\"", "\\\"") + "\"";
         } else {
             return value.toString();
         }
