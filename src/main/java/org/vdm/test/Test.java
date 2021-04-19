@@ -19,6 +19,7 @@ public class Test {
                 add(5);
             }
         }, "asdf", MessageField.CERT_CA));
+        System.out.println(a(new byte[]{2,3})[0] + " " + a(new byte[]{2,3})[1]);
     }
 
     @VDMOperation(preCondition = "c=true", postCondition = "e=3")
@@ -38,5 +39,10 @@ public class Test {
         } else {
             return "asdw";
         }
+    }
+
+    @VDMOperation
+    public byte[] a(byte[]c) {
+        return c;
     }
 }

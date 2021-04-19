@@ -376,9 +376,8 @@ public class VDMTypesHelper {
             return "\"" + returnString + "\"";
         } else {
             String returnString = "[";
-            boolean isFirst = true;
             for (int i = 0; i < Array.getLength(value); i++) {
-                if (!isFirst) {
+                if (i != 0) {
                     returnString += ",";
                 }
                 returnString += Array.get(value, i);
