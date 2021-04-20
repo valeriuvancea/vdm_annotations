@@ -298,10 +298,30 @@ public class VDMTypesHelper {
         } else if (className.equals("boolean") || className.equals("java.lang.Boolean")) {
             return (ReturnType) Boolean.valueOf(value);
         } else if (className.equals("java.lang.String")) {
-            return (ReturnType) value.substring(1, value.length() - 1).replace("\\\"", "\""); // Removing quotes added
-                                                                                              // by VDM and returning
-                                                                                              // escaped quotes to
-                                                                                              // normal
+            // VDM adds extra backlash character to special one.
+            // The following code removes those backslashes.
+            boolean wasLastBackSlashCharacterRemoved = false;
+            char lastCharacter = value.charAt(0);
+            String returnValue = Character.valueOf(lastCharacter).toString();
+
+            for (int i = 1; i < value.length(); i++) {
+                char character = value.charAt(i);
+                boolean shouldCharacterBeAdded = true;
+                if (character == '\\') {
+                    if (lastCharacter != '\\') {
+                        shouldCharacterBeAdded = false;
+                    } else {
+                        if (!wasLastBackSlashCharacterRemoved) {
+                            shouldCharacterBeAdded = false;
+                        }
+                        wasLastBackSlashCharacterRemoved = !wasLastBackSlashCharacterRemoved;
+                    }
+                }
+                returnValue += shouldCharacterBeAdded ? character : "";
+                lastCharacter = character;
+            }
+
+            return (ReturnType) returnValue.substring(1, returnValue.length() - 1); // Removing quotes added by VDM
         } else if (className.contains("<")) {
             return getJavaValueWithGenericFromVDMString(value, className, unsupportedTypeException);
         } else if (className.contains("[")) {
@@ -364,7 +384,19 @@ public class VDMTypesHelper {
         if (value.getClass() == char.class || value.getClass() == Character.class) {
             return "'" + value.toString() + "'";
         } else if (value.getClass() == String.class) {
-            return "\"" + value.toString().replace("\"", "\\\"") + "\"";
+            String returnValue = "[";
+            String stringValue = value.toString();
+            for (int i = 0; i < stringValue.length(); i++) {
+                if (i != 0) {
+                    returnValue += ",";
+                }
+                final Set<Character> metaCharacters = new HashSet<Character>(
+                        Arrays.asList(new Character[] { '\'', '\\' }));
+                char character = stringValue.charAt(i);
+                returnValue += "'" + (metaCharacters.contains(character) ? "\\" : "") + character + "'";
+            }
+            returnValue += "]";
+            return returnValue;
         } else {
             return value.toString();
         }
