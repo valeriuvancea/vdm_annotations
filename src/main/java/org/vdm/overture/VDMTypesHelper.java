@@ -298,7 +298,10 @@ public class VDMTypesHelper {
         } else if (className.equals("boolean") || className.equals("java.lang.Boolean")) {
             return (ReturnType) Boolean.valueOf(value);
         } else if (className.equals("java.lang.String")) {
-            return (ReturnType) value.substring(1, value.length() - 1); // Removing quotes added by VDM
+            return (ReturnType) value.substring(1, value.length() - 1).replace("\\\"", "\""); // Removing quotes added
+                                                                                              // by VDM and returning
+                                                                                              // escaped quotes to
+                                                                                              // normal
         } else if (className.contains("<")) {
             return getJavaValueWithGenericFromVDMString(value, className, unsupportedTypeException);
         } else if (className.contains("[")) {
