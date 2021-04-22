@@ -1,6 +1,8 @@
 package org.vdm.annotations;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,6 +22,11 @@ import javax.lang.model.SourceVersion;
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.TypeName;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.overture.interpreter.VDMPP;
+import org.overture.interpreter.util.ExitStatus;
 import org.vdm.generators.JavaClassGenerator;
 import org.vdm.generators.VDMClassGenerator;
 
@@ -80,6 +87,18 @@ public class VDMOperationProcessor extends AbstractProcessor {
             }
             new JavaClassGenerator(classToAdd, methods).generate();
             new VDMClassGenerator(classToAdd, methods).generate();
+        }
+        VDMPP vdmParser = new VDMPP();
+
+        Collection<File> files = FileUtils.listFiles(new File(VDMClassGenerator.vdmGeneratedClassesFolder),
+                new RegexFileFilter(".*\\.vdmpp"), DirectoryFileFilter.DIRECTORY);
+
+        if (vdmParser.parse(new ArrayList<File>(files)) == ExitStatus.EXIT_ERRORS) {
+            VDMOperationProcessor.writeError("Found syntax errors in the generated VDM classes for the Java class ");
+        }
+
+        if (vdmParser.typeCheck() == ExitStatus.EXIT_ERRORS) {
+            VDMOperationProcessor.writeError("Found type errors in the generated VDM classes for the Java class ");
         }
     }
 

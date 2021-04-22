@@ -3,7 +3,6 @@ package org.vdm.generators;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -20,8 +19,6 @@ import org.vdm.overture.VDMTypesHelper;
 import org.apache.commons.io.FileUtils;
 import org.overture.ast.lex.Dialect;
 import org.overture.ast.lex.VDMToken;
-import org.overture.interpreter.VDMPP;
-import org.overture.interpreter.util.ExitStatus;
 
 import static java.util.stream.Collectors.toList;
 
@@ -33,7 +30,8 @@ public class VDMClassGenerator extends BaseGenerator {
     private final String vdmClassName;
     private final String vdmClassFileName;
     private final String vdmClassFilePath;
-    private final String vdmGeneratedClassesFolder;
+    public static final String vdmGeneratedClassesFolder = System.getProperty("user.dir").replace("\\", "/") + "/"
+            + "generatedVDMModel/";
     private final String vdmOperationAccess = "public";
     private final String vdmInterfaceObjectName = "javaObject";
     public static final String vdmClassOperationPrefix = "GENERATED_";
@@ -52,7 +50,6 @@ public class VDMClassGenerator extends BaseGenerator {
         super(className, methods);
         vdmClassName = className.substring(className.lastIndexOf(".") + 1);
         vdmKeyWordsSet.add("end " + vdmClassName);
-        vdmGeneratedClassesFolder = System.getProperty("user.dir").replace("\\", "/") + "/" + "generatedVDMModel/";
         vdmClassFileName = vdmClassName + ".vdmpp";
         vdmClassFilePath = vdmGeneratedClassesFolder + vdmClassFileName;
         vdmInterfaceName = packageName.replace(".", "_") + "_" + classNameToAdd;
@@ -81,20 +78,6 @@ public class VDMClassGenerator extends BaseGenerator {
                 editExistingVDMClass(vdmClassFile, vdmClassFilePath);
                 VDMOperationProcessor.writeNote("VDM class " + vdmClassName + " edited at " + vdmClassFilePath);
             }
-
-            VDMPP vdmParser = new VDMPP();
-
-            if (vdmParser
-                    .parse(Arrays.asList(new File[] { vdmInterfaceFile, vdmClassFile })) == ExitStatus.EXIT_ERRORS) {
-                VDMOperationProcessor
-                        .writeError("Found syntax errors in the generated VDM classes for the Java class " + className);
-            }
-
-            if (vdmParser.typeCheck() == ExitStatus.EXIT_ERRORS) {
-                VDMOperationProcessor
-                        .writeError("Found type errors in the generated VDM classes for the Java class " + className);
-            }
-
         } catch (Exception exception) {
             VDMOperationProcessor.writeError(exception.getMessage());
             exception.printStackTrace();
