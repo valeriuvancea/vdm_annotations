@@ -82,16 +82,17 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
+        <!-- <configuration>
+          <useIncrementalCompilation>false</useIncrementalCompilation>
+        </configuration> -->
         <executions>
           <execution>
-            <id>annotation-compile</id>
-            <phase>compile</phase>
             <goals>
               <goal>compile</goal>
             </goals>
             <configuration>
               <annotationProcessors>
-                <annotationProcessor>org.vdm.annotations.VDMMethodProcessor</annotationProcessor>
+                <annotationProcessor>org.vdm.annotations.VDMOperationProcessor</annotationProcessor>
               </annotationProcessors>
             </configuration>
           </execution>
@@ -105,13 +106,12 @@
           <showWeaveInfo>true</showWeaveInfo>
           <source>${java.source-target.version}</source>
           <target>${java.source-target.version}</target>
-          <Xlint>ignore</Xlint>
           <complianceLevel>${java.source-target.version}</complianceLevel>
-          <encoding>UTF-8</encoding>
-          <verbose>true</verbose>
+          <proc>none</proc>
         </configuration>
         <executions>
           <execution>
+            <!-- <phase>process-sources</phase> -->
             <goals>
               <goal>compile</goal>
             </goals>

@@ -1,6 +1,8 @@
 package org.vdm.annotations;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,18 +22,25 @@ import javax.lang.model.SourceVersion;
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.TypeName;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.overture.interpreter.VDMPP;
+import org.overture.interpreter.util.ExitStatus;
 import org.vdm.generators.JavaClassGenerator;
+import org.vdm.generators.VDMClassGenerator;
 
 import javax.tools.Diagnostic;
 import javax.lang.model.element.*;
 
-@SupportedAnnotationTypes("org.vdm.annotations.VDMMethod")
+@SupportedAnnotationTypes("org.vdm.annotations.VDMOperation")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
-public class VDMMethodProcessor extends AbstractProcessor {
+public class VDMOperationProcessor extends AbstractProcessor {
     private Map<String, List<Method>> classes = new HashMap<>();
     private RoundEnvironment roundEnv = null;
     public static ProcessingEnvironment processingEnvironment = null;
+    private static Element errorsAndWarningsTarget = null;
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -39,9 +48,9 @@ public class VDMMethodProcessor extends AbstractProcessor {
             this.roundEnv = roundEnv;
             processingEnvironment = processingEnv;
             findClassesFromAnnotations(annotations);
-            generateJavaClasses();
+            generateClasses();
         }
-        return false;
+        return true;
     }
 
     private void findClassesFromAnnotations(Set<? extends TypeElement> annotations) {
@@ -58,29 +67,58 @@ public class VDMMethodProcessor extends AbstractProcessor {
                 String methodClass = ((PackageElement) method.getEnclosingElement().getEnclosingElement())
                         .getQualifiedName().toString() + "." + method.getEnclosingElement().getSimpleName().toString();
                 TypeName returnType = TypeName.get(method.getReturnType());
+
                 if (!classes.containsKey(methodClass)) {
                     classes.put(methodClass, new ArrayList<>());
                 }
-                classes.get(methodClass).add(new Method(methodName, parameters, returnType, methodClass));
+
+                VDMOperation methodAnnotation = method.getAnnotation(VDMOperation.class);
+                classes.get(methodClass).add(new Method(methodName, parameters, returnType, methodClass,
+                        methodAnnotation.preCondition(), methodAnnotation.postCondition(), (Element) methodObject));
             });
         }
     }
 
-    private void generateJavaClasses() {
+    private void generateClasses() {
         for (String classToAdd : classes.keySet()) {
-            new JavaClassGenerator(classToAdd, classes.get(classToAdd)).generate();
+            List<Method> methods = classes.get(classToAdd);
+            if (methods.size() > 0) {
+                errorsAndWarningsTarget = methods.get(0).getErrorsAndWarningsTarget();
+            }
+            new JavaClassGenerator(classToAdd, methods).generate();
+            new VDMClassGenerator(classToAdd, methods).generate();
+        }
+        VDMPP vdmParser = new VDMPP();
+
+        Collection<File> files = FileUtils.listFiles(new File(VDMClassGenerator.vdmGeneratedClassesFolder),
+                new RegexFileFilter(".*\\.vdmpp"), DirectoryFileFilter.DIRECTORY);
+
+        if (vdmParser.parse(new ArrayList<File>(files)) == ExitStatus.EXIT_ERRORS) {
+            VDMOperationProcessor.writeError("Found syntax errors in the generated VDM classes for the Java class ");
+        }
+
+        if (vdmParser.typeCheck() == ExitStatus.EXIT_ERRORS) {
+            VDMOperationProcessor.writeError("Found type errors in the generated VDM classes for the Java class ");
         }
     }
 
     public static void writeNote(String note) {
-        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.OTHER, note);
+        System.out.println(note);
     }
 
     public static void writeError(String error) {
-        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.ERROR, error);
+        writeError(error, errorsAndWarningsTarget);
+    }
+
+    public static void writeError(String error, Element target) {
+        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.ERROR, error, target);
     }
 
     public static void writeWarning(String warning) {
-        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, warning);
+        writeWarning(warning, errorsAndWarningsTarget);
+    }
+
+    public static void writeWarning(String warning, Element target) {
+        processingEnvironment.getMessager().printMessage(Diagnostic.Kind.WARNING, warning, target);
     }
 }
